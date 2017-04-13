@@ -46,8 +46,10 @@ dir :
 	ditto -rsrc ${VOLUME}/Emacs/Emacs.app ${EMACSDIR}
 	hdiutil detach ${VOLUME}/Emacs -quiet
 	cp -p default.el ${SITELISP}/
-        curl --output site-start.el https://raw.githubusercontent.com/izahn/dotemacs/master/init.el
-	cp -p site-start.el ${SITELISP}/
+	curl --output ${SITELISP}/site-start.el https://raw.githubusercontent.com/izahn/dotemacs/master/init.el
+	curl --output ${SITELISP}/essh.el https://raw.githubusercontent.com/izahn/dotemacs/master/lisp/essh.el
+	curl --output ${SITELISP}/hfyview.el https://raw.githubusercontent.com/izahn/dotemacs/master/lisp/hfyview.el
+	curl --output ${SITELISP}/win-win.el https://raw.githubusercontent.com/izahn/dotemacs/master/lisp/win-win.el
 	sed -e '/^(defconst/s/<DISTVERSION>/${DISTVERSION}/' \
 	    version-modified.el.in > ${SITELISP}/version-modified.el
 	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/version-modified.el
@@ -56,9 +58,11 @@ dir :
 	cp -p Emacs.icns ${DESTDIR}/
 
 dmg :
-	@echo ----- Signing the application...
-	codesign --force --sign "Developer ID Application: Vincent Goulet" \
-		${EMACSDIR}
+#	@echo ----- Signing the application...
+	@echo ----- Warning _Not_ Signing the application...
+	rm -rf ${PREFIX}/_CodeSignature
+#	codesign --force --sign "Developer ID Application: Vincent Goulet" \
+#		${EMACSDIR}
 
 	@echo ----- Creating disk image...
 	if [ -e ${TMPDMG} ]; then rm ${TMPDMG}; fi
@@ -74,7 +78,7 @@ dmg :
 	hdiutil attach ${TMPDMG} -noautoopen -quiet
 
 	@echo ----- Populating top level image directory...
-	    README.txt.in > ${VOLUME}/${DISTNAME}/README.txt
+	cp -p README.txt.in ${VOLUME}/${DISTNAME}/README.txt
 	cp -p NEWS ${VOLUME}/${DISTNAME}/
 	ln -s /Applications ${VOLUME}/${DISTNAME}/Applications
 
@@ -131,5 +135,3 @@ get-emacs :
 
 clean :
 	rm ${DISTNAME}.dmg
-	cd ${ESS} && ${MAKE} clean
-	cd ${AUCTEX} && ${MAKE} clean
