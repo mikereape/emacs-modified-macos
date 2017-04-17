@@ -16,7 +16,7 @@ include ./Makeconf
 ## Build directory et al.
 TMPDIR=${CURDIR}/tmpdir
 TMPDMG=${CURDIR}/tmpdmg.dmg
-EMACSDIR=${TMPDIR}/Emacs.app
+EMACSDIR=${TMPDIR}/Emacs-configured.app
 
 ## Emacs specific info
 PREFIX=${EMACSDIR}/Contents
