@@ -53,8 +53,6 @@ dir :
 	sed -e '/^(defconst/s/<DISTVERSION>/${DISTVERSION}/' \
 	    version-modified.el.in > ${SITELISP}/version-modified.el
 	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/version-modified.el
-	cp -p framepop.el ${SITELISP}/
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/framepop.el
 	cp -p Emacs.icns ${DESTDIR}/
 
 dmg :
