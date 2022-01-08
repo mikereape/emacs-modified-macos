@@ -1,5 +1,5 @@
 Copyright (C) 2008-2013 Free Software Foundation, Inc.
-Copyright (C) 2009-2020 Vincent Goulet for the modifications.
+Copyright (C) 2009-2022 Vincent Goulet for the modifications.
 See below for GNU Emacs license conditions.
 
 Emacs Modified for macOS

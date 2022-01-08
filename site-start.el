@@ -1,6 +1,6 @@
 ;;; site-start.el --- Customizations for Emacs Modified for macOS
 ;;
-;; Copyright (C) 2019 Vincent Goulet
+;; Copyright (C) 2009-2022 Vincent Goulet
 ;;
 ;; Author: Vincent Goulet
 ;;
