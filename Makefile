@@ -1,6 +1,6 @@
 ### -*-Makefile-*- to build Emacs Modified for macOS
 ##
-## Copyright (C) 2021 Vincent Goulet
+## Copyright (C) 2009-2022 Vincent Goulet
 ##
 ## The code of this Makefile is based on a file created by Remko
 ## Troncon (http://el-tramo.be/about).
@@ -52,16 +52,18 @@ CP = cp -p
 RM = rm -r
 MD = mkdir -p
 UNZIP = unzip
+UNTAR = tar xzf
+SVN = /Library/Developer/CommandLineTools/usr/bin/svn # for macOS >= 11 Big Sur
 
 all: get-packages emacs
 
-get-packages: get-emacs get-ess get-auctex get-org get-markdownmode get-execpath get-psvn get-tabbar get-dict
+get-packages: get-emacs get-ess get-auctex get-markdownmode get-execpath get-psvn get-dict
 
-emacs: dir ess auctex org markdownmode execpath psvn tabbar dict dmg
+emacs: dir ess auctex markdownmode execpath psvn dict dmg
 
 dmg: codesign bundle notarize
 
-release: staple check-status upload create-release publish
+release: staple check-status create-release create-link publish
 
 .PHONY: dir
 dir:
@@ -82,22 +84,22 @@ dir:
 .PHONY: ess
 ess:
 	@echo ----- Making ESS...
-	if [ -d ${ESS} ]; then ${RM} -f ${ESS}; fi
+	if [ -d ESS-master ]; then ${RM} -f ESS-master; fi
 	${UNZIP} ${ESS}.zip
-	${MAKE} EMACS=${EMACS} DOWNLOAD=curl -C ${ESS} all
+	${MAKE} EMACS=${EMACS} DOWNLOAD=curl -C ESS-master all
 	${MAKE} DESTDIR=${DESTDIR} SITELISP=${SITELISP} \
 	        ETCDIR=${ETCDIR}/ess DOCDIR=${DOCDIR}/ess \
-	        INFODIR=${INFODIR} -C ${ESS} install
-	${CP} ${ESS}/lisp/*.el ${SITELISP}/ess # temporary; should be fixed for ESS > 18.10.2
+	        INFODIR=${INFODIR} -C ESS-master install
+	${CP} ESS-master/lisp/*.el ${SITELISP}/ess # temporary; should be fixed for ESS > 18.10.2
 	if [ -f ${SITELISP}/ess-site.el ]; then rm ${SITELISP}/ess-site.el; fi
-	${RM} -f ${ESS}
+	${RM} -f ESS-master
 	@echo ----- Done making ESS
 
 .PHONY: auctex
 auctex:
 	@echo ----- Making AUCTeX...
 	if [ -d ${AUCTEX} ]; then ${RM} -f ${AUCTEX}; fi
-	${UNZIP} ${AUCTEX}.zip
+	${UNTAR} ${AUCTEX}.tar.gz
 	cd ${AUCTEX} && ./configure --datarootdir=${DESTDIR} \
 		--without-texmf-dir \
 		--with-lispdir=${SITELISP} \
@@ -106,18 +108,6 @@ auctex:
 	make -C ${AUCTEX} install
 	${RM} -f ${AUCTEX}
 	@echo ----- Done making AUCTeX
-
-.PHONY: org
-org:
-	@echo ----- Making org...
-	if [ -d ${ORG} ]; then ${RM} -f ${ORG}; fi
-	${UNZIP} ${ORG}.zip
-	${MAKE} EMACS=${EMACS} -C ${ORG} all
-	${MAKE} EMACS=${EMACS} lispdir=${SITELISP}/org \
-	        datadir=${ETCDIR}/org infodir=${INFODIR} -C ${ORG} install
-	mkdir -p ${DOCDIR}/org && ${CP} ${ORG}/doc/*.pdf ${DOCDIR}/org/
-	${RM} -f ${ORG}
-	@echo ----- Done making org
 
 .PHONY: markdownmode
 markdownmode:
@@ -198,8 +188,6 @@ bundle:
 	    -e 's/(GNU Emacs )[0-9.]+/\1${EMACSVERSION}/' \
 	    -e 's/(ESS )[0-9.]+/\1${ESSVERSION}/' \
 	    -e 's/(AUCTeX )[0-9.]+/\1${AUCTEXVERSION}/' \
-	    -e 's/(org )[0-9.]+/\1${ORGVERSION}/' \
-	    -e 's/(Tabbar )[0-9.]+/\1${TABBARVERSION}/' \
 	    -e 's/(markdown-mode.el )[0-9.]+/\1${MARKDOWNMODEVERSION}/' \
 	    -e 's/(exec-path-from-shell.el )[0-9.]+/\1${EXECPATHVERSION}/' \
 	    -e 's/(psvn.el r)[0-9]+/\1${PSVNVERSION}/' \
@@ -239,55 +227,79 @@ staple:
 
 .PHONY: check-status
 check-status:
-	@echo ----- Checking status of working directory...
-	@if [ "master" != $(shell git branch --list | grep ^* | cut -d " " -f 2-) ]; then \
-	     echo "not on branch master"; exit 2; fi
-	@if [ -n "$(shell git status --porcelain | grep -v '^??')" ]; then \
-	     echo "uncommitted changes in repository; not creating release"; exit 2; fi
-	@if [ -n "$(shell git log origin/master..HEAD | head -n1)" ]; then \
-	    echo "unpushed commits in repository; pushing to origin"; \
-	     git push; fi
-
-.PHONY: upload
-upload:
-	@echo ----- Uploading installer to GitLab...
-	$(eval upload_url=$(shell curl --form "file=@${DISTNAME}.dmg" \
-	                                        --header "PRIVATE-TOKEN: ${OAUTHTOKEN}"	\
-	                                        --silent \
-	                                        ${APIURL}/uploads \
-	                                   | awk -F '"' '{ print $$8 }'))
-	@echo url to file:
-	@echo "${upload_url}"
-	@echo ----- Done uploading installer
+	@{ \
+	    printf "%s" "----- Checking status of working directory... "; \
+	    branch=$$(git branch --list | grep ^* | cut -d " " -f 2-); \
+	    if [ "$${branch}" != "master"  ] && [ "$${branch}" != "main" ]; \
+	    then \
+	        printf "\n%s\n" "not on branch master or main"; exit 2; \
+	    fi; \
+	    if [ -n "$$(git status --porcelain | grep -v '^??')" ]; \
+	    then \
+	        printf "\n%s\n" "uncommitted changes in repository; not creating release"; exit 2; \
+	    fi; \
+	    if [ -n "$$(git log origin/master..HEAD | head -n1)" ]; \
+	    then \
+	        printf "\n%s\n" "unpushed commits in repository; pushing to origin"; \
+	        git push; \
+	    else \
+	        printf "%s\n" "ok"; \
+	    fi; \
+	}
 
 .PHONY: create-release
 create-release:
-	@echo ----- Creating release on GitLab...
-	if [ -e relnotes.in ]; then ${RM} relnotes.in; fi
-	touch relnotes.in
-	awk 'BEGIN { ORS = " "; print "{\"tag_name\": \"${TAGNAME}\"," } \
-	      /^$$/ { next } \
-	      (state == 0) && /^# / { state = 1; \
-		out = $$3; \
-	        for(i = 4; i <= NF; i++) { out = out" "$$i }; \
-	        printf "\"name\": \"Emacs Modified for macOS %s\", \"description\":\"", out; \
-	        next } \
-	      (state == 1) && /^# / { exit } \
-	      state == 1 { printf "%s\\n", $$0 } \
-	      END { print "\",\"assets\": { \"links\": [{ \"name\": \"${DISTNAME}.dmg\", \"url\": \"${REPOSURL}${upload_url}\" }] }}" }' \
-	     ${NEWS} >> relnotes.in
-	curl --request POST \
-	     --header "PRIVATE-TOKEN: ${OAUTHTOKEN}" \
-	     --output /dev/null --silent \
-	     "${APIURL}/repository/tags?tag_name=${TAGNAME}&ref=master"
-	curl --request POST \
-	     --data @relnotes.in \
-	     --header "PRIVATE-TOKEN: ${OAUTHTOKEN}" \
-	     --header "Content-Type: application/json" \
-	     --output /dev/null --silent \
-	     ${APIURL}/releases
-	${RM} relnotes.in
-	@echo ----- Done creating the release
+	@{ \
+	    printf "%s" "----- Checking if a release already exists... "; \
+	    http_code=$$(curl -I ${APIURL}/releases/${TAGNAME} 2>/dev/null \
+	                     | head -n1 | cut -d " " -f2) ; \
+	    if [ "$${http_code}" = "200" ]; \
+	    then \
+	        printf "%s\n" "yes"; \
+	        printf "%s\n" "using the existing release"; \
+	    else \
+	        printf "%s\n" "no"; \
+	        printf "%s" "Creating release on GitLab... "; \
+	        name=$$(awk '/^# / { sub(/# +/, "", $$0); print $$0; exit }' ${NEWS}); \
+	        desc=$$(awk ' \
+	                      /^$$/ { next } \
+	                      (state == 0) && /^# / { state = 1; next } \
+	                      (state == 1) && /^# / { exit } \
+	                      (state == 1) { print } \
+	                    ' ${NEWS}); \
+	        curl --request POST \
+	             --header "PRIVATE-TOKEN: ${OAUTHTOKEN}" \
+	             --output /dev/null --silent \
+	             "${APIURL}/repository/tags?tag_name=${TAGNAME}&ref=master" && \
+	        curl --request POST \
+	             --header "PRIVATE-TOKEN: ${OAUTHTOKEN}" \
+	             --data tag_name="${TAGNAME}" \
+	             --data name="$${name}" \
+	             --data description="$${desc}" \
+	             --output /dev/null --silent \
+	             ${APIURL}/releases; \
+	        printf "%s\n" "done"; \
+	    fi; \
+	}
+
+.PHONY: create-link-%
+create-link-%: create-release
+	@{ \
+	    printf "%s" "----- Adding asset to the release... "; \
+	    url=$$(curl --form "file=@${PACKAGE}.$*" \
+	                --header "PRIVATE-TOKEN: ${OAUTHTOKEN}"	\
+	                --silent \
+	           ${APIURL}/uploads \
+	           | awk -F '"' '{ print $$8 }'); \
+	    curl --request POST \
+	         --header "PRIVATE-TOKEN: ${OAUTHTOKEN}" \
+	         --data name="${PACKAGE}.$*" \
+	         --data url="${REPOSURL}$${url}" \
+	         --data link_type="package" \
+	         --output /dev/null --silent \
+	         ${APIURL}/releases/${TAGNAME}/assets/links; \
+	    printf "%s\n" "done"; \
+	}
 
 .PHONY: publish
 publish:
@@ -301,25 +313,19 @@ publish:
 get-emacs:
 	@echo ----- Fetching Emacs...
 	if [ -f ${DMGFILE} ]; then ${RM} ${DMGFILE}; fi
-	curl -O -L http://emacsformacosx.com/emacs-builds/${DMGFILE}
+	curl -O -L https://emacsformacosx.com/emacs-builds/${DMGFILE}
 
 .PHONY: get-ess
 get-ess:
 	@echo ----- Fetching ESS...
 	if [ -d ${ESS}.zip ]; then ${RM} ${ESS}.zip; fi
-	curl -O http://ess.r-project.org/downloads/ess/${ESS}.zip
+	curl -L -o ${ESS}.zip https://github.com/emacs-ess/ESS/archive/master.zip
 
 .PHONY: get-auctex
 get-auctex:
 	@echo ----- Fetching AUCTeX...
-	if [ -f ${AUCTEX}.zip ]; then rm ${AUCTEX}.zip; fi
-	curl -O http://ftp.gnu.org/pub/gnu/auctex/${AUCTEX}.zip
-
-.PHONY: get-org
-get-org:
-	@echo ----- Fetching org...
-	if [ -f ${ORG}.zip ]; then ${RM} ${ORG}.zip; fi
-	curl -O https://orgmode.org/${ORG}.zip
+	if [ -f ${AUCTEX}.tar.gz ]; then rm ${AUCTEX}.tar.gz; fi
+	curl -O https://ftp.gnu.org/pub/gnu/auctex/${AUCTEX}.tar.gz
 
 .PHONY: get-markdownmode
 get-markdownmode:
@@ -337,7 +343,7 @@ get-execpath:
 get-psvn:
 	@echo ----- Fetching psvn.el
 	if [ -f psvn.el ]; then ${RM} psvn.el; fi
-	svn cat http://svn.apache.org/repos/asf/subversion/trunk/contrib/client-side/emacs/psvn.el > psvn.el
+	${SVN} cat http://svn.apache.org/repos/asf/subversion/trunk/contrib/client-side/emacs/psvn.el > psvn.el
 
 .PHONY: get-tabbar
 get-tabbar:
@@ -351,7 +357,7 @@ get-tabbar:
 get-dict:
 	@echo ----- Fetching dictionaries
 	if [ -f ${DICT-EN}.zip ]; then ${RM} ${DICT-EN}.zip; fi
-	curl -L -o ${DICT-EN}.zip https://extensions.libreoffice.org/assets/downloads/41/${DICT-EN}.oxt
+	curl -L -o ${DICT-EN}.zip https://github.com/marcoagpinto/aoo-mozilla-en-dict/blob/master/Extension%20-%20LibreOffice%20%28English%20All%29/${DICT-EN}_lo.oxt?raw=true
 	if [ -f ${DICT-FR}.zip ]; then ${RM} ${DICT-FR}.zip; fi
 	curl -L -o ${DICT-FR}.zip https://extensions.libreoffice.org/assets/downloads/z/${DICT-FR}.oxt
 	if [ -f ${DICT-ES}.zip ]; then ${RM} ${DICT-ES}.zip; fi
