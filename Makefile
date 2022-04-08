@@ -87,10 +87,9 @@ ess:
 	if [ -d ESS-master ]; then ${RM} -f ESS-master; fi
 	${UNZIP} ${ESS}.zip
 	${MAKE} EMACS=${EMACS} DOWNLOAD=curl -C ESS-master all
-	${MAKE} DESTDIR=${DESTDIR} SITELISP=${SITELISP} \
+	${MAKE} EMACS=${EMACS} DESTDIR=${DESTDIR} SITELISP=${SITELISP} \
 	        ETCDIR=${ETCDIR}/ess DOCDIR=${DOCDIR}/ess \
 	        INFODIR=${INFODIR} -C ESS-master install
-	${CP} ESS-master/lisp/*.el ${SITELISP}/ess # temporary; should be fixed for ESS > 18.10.2
 	if [ -f ${SITELISP}/ess-site.el ]; then rm ${SITELISP}/ess-site.el; fi
 	${RM} -f ESS-master
 	@echo ----- Done making ESS
