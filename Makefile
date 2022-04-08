@@ -185,7 +185,7 @@ bundle:
 	@echo ----- Populating top level image directory...
 	sed -E -i "" \
 	    -e 's/(GNU Emacs )[0-9.]+/\1${EMACSVERSION}/' \
-	    -e 's/(ESS )[0-9.]+/\1${ESSVERSION}/' \
+	    -e 's/(ESS )[0-9.a-z]+/\1${ESSVERSION}/' \
 	    -e 's/(AUCTeX )[0-9.]+/\1${AUCTEXVERSION}/' \
 	    -e 's/(markdown-mode.el )[0-9.]+/\1${MARKDOWNMODEVERSION}/' \
 	    -e 's/(exec-path-from-shell.el )[0-9.]+/\1${EXECPATHVERSION}/' \
