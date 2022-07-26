@@ -52,6 +52,13 @@
 ;;;
 ;;; ESS
 ;;;
+
+;; Add the path to ESS to 'load-path'.
+(add-to-list 'load-path 
+	     (let ((default-directory
+		     (file-name-directory load-file-name)))
+	       (expand-file-name "ess/lisp")))
+
 ;; Following the "source is real" philosophy put forward by ESS, one
 ;; should not save the workspace at the end of an R session. Hence,
 ;; the option is disabled here.
@@ -70,7 +77,7 @@
 	     (setq ess-nuke-trailing-whitespace-p t)))
 
 ;; Load ESS when needed.
-(require 'ess-site)
+(load "ess-autoloads")
 
 ;;;
 ;;; AUCTeX
