@@ -48,7 +48,7 @@ The Hunspell installation does not include any dictionaries.
 Therefore, this distributions of Emacs ships with the following Libre
 Office dictionaries suitable for use with Hunspell:
 
-- English (version 2022.04.01);
+- English (version 2022.07.01);
 - French (version 5.7);
 - German (version 2017.01.12);
 - Spanish (version 2.5).
@@ -63,7 +63,13 @@ command line
   ln -s fr-classique.dic fr_CA.dic
   ln -s fr-classique.aff fr_CA.aff
 
-Finally, add the following lines to your ~/.emacs file:
+Finally, if you have a Mac with an Apple Silicon CPU (M1 and above),
+add the following lines to your ~/.emacs file:
+
+  (setq-default ispell-program-name "/opt/homebrew/bin/hunspell")
+  (setq ispell-really-hunspell t)
+
+For an Intel CPU, use instead:
 
   (setq-default ispell-program-name "/usr/local/bin/hunspell")
   (setq ispell-really-hunspell t)
