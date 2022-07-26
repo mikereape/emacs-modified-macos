@@ -2,6 +2,30 @@
 === Emacs Modified for macOS
 ===
 
+# VERSION 28.1-4-modified-1 (26 July 2022)
+
+## Updates
+
+- Emacs 28.1 released 4 April 2022 based off the macOS binary release
+  28.1-4 of David Caldwell.
+- ESS 18.10.3snapshot, actually the tip of the development branch as
+  of this distribution's release date.
+- AUCTeX 13.1
+- markdownmode.el v2.5
+- Libre Office English dictionary 2022.07.01
+
+## Changes
+
+- Org is removed from the distribution as version 9.5 is included in
+  Emacs 28. Installation from the sources is deprecated anyway.
+- David Holm's TabBarMode is removed from the distribution as it does
+  not compile with Emacs 28.1.
+- Since a directory 'site-lisp' inside the application bundle (e.g.
+  '/Applications/Emacs.app/Contents/Resources/site-lisp/') is no
+  longer included in 'load-path' by default, the extensions are
+  installed in the 'lisp' directory instead.
+
+
 # VERSION 27.2-2-modified-1 (28 March 2021)
 
 ## Updates
