@@ -41,8 +41,7 @@ EMACSBATCH = $(EMACS) -batch -no-site-file -no-init-file
 
 ## Override of ESS variables
 DESTDIR = ${PREFIX}/Resources
-SITELISP = ${DESTDIR}/site-lisp
-#LISPDIR = ${DESTDIR}/site-lisp
+SITELISP = ${DESTDIR}/lisp
 ETCDIR = ${DESTDIR}/etc
 DOCDIR = ${DESTDIR}/doc
 INFODIR = ${DESTDIR}/info
@@ -90,7 +89,6 @@ ess:
 	${MAKE} EMACS=${EMACS} DESTDIR=${DESTDIR} SITELISP=${SITELISP} \
 	        ETCDIR=${ETCDIR}/ess DOCDIR=${DOCDIR}/ess \
 	        INFODIR=${INFODIR} -C ESS-master install
-	if [ -f ${SITELISP}/ess-site.el ]; then rm ${SITELISP}/ess-site.el; fi
 	${RM} -f ESS-master
 	@echo ----- Done making ESS
 
@@ -128,26 +126,6 @@ psvn:
 	patch -o ${SITELISP}/psvn.el psvn.el psvn.el_svn1.7.diff
 	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/psvn.el
 	@echo ----- Done installing psvn.el
-
-.PHONY: tabbar
-tabbar:
-	@echo ----- Making tabbar...
-	if [ -d ${TABBAR} ]; then ${RM} -f ${TABBAR}; fi
-	${UNZIP} ${TABBAR}.zip
-	${MD} ${SITELISP}/tabbar
-	${CP} ${TABBAR}/*.el ${SITELISP}/tabbar
-	${CP} ${TABBAR}/*.tiff ${SITELISP}/tabbar
-	${CP} ${TABBAR}/*.png ${SITELISP}/tabbar
-	${MD} ${DOCDIR}/tabbar
-	${CP} ${TABBAR}/README.markdown ${DOCDIR}/tabbar/README.md
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/aquamacs-compat.el
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/aquamacs-tabbar.el
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/aquamacs-tools.el
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/one-buffer-one-frame.el
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/tabbar-window.el
-	$(EMACSBATCH) -f batch-byte-compile ${SITELISP}/tabbar/tabbar.el
-	${RM} -f ${TABBAR}
-	@echo ----- Done making tabbar
 
 .PHONY: dict
 dict:
@@ -344,19 +322,11 @@ get-psvn:
 	if [ -f psvn.el ]; then ${RM} psvn.el; fi
 	${SVN} cat http://svn.apache.org/repos/asf/subversion/trunk/contrib/client-side/emacs/psvn.el > psvn.el
 
-.PHONY: get-tabbar
-get-tabbar:
-	@echo ----- Fetching tabbar...
-	if [ -f ${TABBAR}.zip ]; then ${RM} ${TABBAR}.zip; fi
-	curl -OL https://github.com/dholm/tabbar/archive/v${TABBARVERSION}.zip
-	${CP} v${TABBARVERSION}.zip ${TABBAR}.zip
-	${RM} v${TABBARVERSION}.zip
-
 .PHONY: get-dict
 get-dict:
 	@echo ----- Fetching dictionaries
 	if [ -f ${DICT-EN}.zip ]; then ${RM} ${DICT-EN}.zip; fi
-	curl -L -o ${DICT-EN}.zip https://github.com/marcoagpinto/aoo-mozilla-en-dict/blob/master/Extension%20-%20LibreOffice%20%28English%20All%29/${DICT-EN}_lo.oxt?raw=true
+	curl -L -o ${DICT-EN}.zip https://extensions.libreoffice.org/assets/downloads/${DICT-EN-ID}/${DICT-EN}_lo.oxt
 	if [ -f ${DICT-FR}.zip ]; then ${RM} ${DICT-FR}.zip; fi
 	curl -L -o ${DICT-FR}.zip https://extensions.libreoffice.org/assets/downloads/z/${DICT-FR}.oxt
 	if [ -f ${DICT-ES}.zip ]; then ${RM} ${DICT-ES}.zip; fi
